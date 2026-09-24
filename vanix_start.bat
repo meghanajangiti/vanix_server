@@ -5,7 +5,7 @@ echo       VANIX MULTI-KIOSK SERVER
 echo ==========================================
 echo.
 
-set GEMINI_API_KEY=AQ.Ab8RN6IJzp4rofiIoqM4Fl1o6MVQfJQANzZ909S7g3UD-H_1Cg
+set GEMINI_API_KEY=YOUR_API_KEY_HERE 
 set GEMINI_MODEL=gemini-3.8-flash
 set GEMINI_FALLBACK_MODEL=gemini-3.5-flash-lite
 set GEMINI_MAX_RETRIES=3
