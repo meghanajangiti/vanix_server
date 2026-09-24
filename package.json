@@ -1,0 +1,16 @@
+{
+  "name": "vanix-server",
+  "version": "1.0.0",
+  "description": "VANIX Multi-Kiosk Server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "express": "^4.21.0",
+    "mqtt": "^5.10.0",
+    "multer": "^2.0.0",
+    "nedb-promises": "^6.2.3"
+  }
+}

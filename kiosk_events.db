@@ -1,0 +1,2 @@
+{"kioskId":"device1","timestamp":1790149116,"type":"MQTT_CONNECTED","deviceId":"862942071231302","rawPayload":"{\"timestamp\": 1790149116, \"type\": \"MQTT_CONNECTED\", \"deviceId\": \"862942071231302\"}","createdAt":{"$$date":1790149130862},"_id":"ScvonqnLZaJ0Nqnh"}
+{"kioskId":"device1","timestamp":1790149114,"type":"EC200_STARTED","deviceId":"862942071231302","rawPayload":"{\"timestamp\": 1790149114, \"type\": \"EC200_STARTED\", \"deviceId\": \"862942071231302\"}","createdAt":{"$$date":1790149130861},"_id":"o2dRcHeOa1UzEGqu"}
