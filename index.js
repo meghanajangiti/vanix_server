@@ -25,7 +25,7 @@ const upload = multer({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use("/mall", express.static(path.join(__dirname, "public", "mall"), { maxAge: "7d" }));
 // ─────────────────────────────────────────────────────────
 // 2. GEMINI AI CLIENT
 // ─────────────────────────────────────────────────────────
@@ -391,25 +391,21 @@ const CATALOGS = {
       "Recommend the single best matching store or facility for what the visitor wants, " +
       'and briefly explain why. Use "Emergency" urgency only for things like a lost child, ' +
       "medical emergency, or security issue — otherwise use Low or Medium.",
-    items: [
-      { id: 1, name: "👟 Nike", location: "2nd Floor, Unit 210" },
-      { id: 2, name: "🍔 Food Court", location: "3rd Floor" },
-      { id: 3, name: "📱 Croma Electronics", location: "1st Floor, Unit 105" },
-      { id: 4, name: "👗 Zara", location: "Ground Floor, Unit 12" },
-      { id: 5, name: "🎬 PVR Cinemas", location: "4th Floor" },
-      { id: 6, name: "💊 Apollo Pharmacy", location: "Ground Floor, Unit 3" },
-      { id: 7, name: "☕ Starbucks", location: "1st Floor, Unit 118" },
-      { id: 8, name: "🧸 Hamleys Toy Store", location: "2nd Floor, Unit 225" },
-      {
-        id: 9,
-        name: "🏦 ATM / Bank Kiosk",
-        location: "Ground Floor, near Entrance A",
-      },
-      {
-        id: 10,
-        name: "🅿️ Parking / Security Help Desk",
-        location: "Basement 1",
-      },
+        items: [
+      { id: 1,  name: "👗 Fashion Avenue",          location: "Level 1",       map: { floor: "1", store: "Fashion Avenue" } },
+      { id: 2,  name: "👟 Sole Street",             location: "Level 1",       map: { floor: "1", store: "Sole Street" } },
+      { id: 3,  name: "🏃 SportZone",               location: "Level 1",       map: { floor: "1", store: "SportZone" } },
+      { id: 4,  name: "💻 Tech Hub",                location: "Level 2",       map: { floor: "2", store: "Tech Hub" } },
+      { id: 5,  name: "🏠 Home & Living",           location: "Level 2",       map: { floor: "2", store: "Home & Living" } },
+      { id: 6,  name: "📚 Book Nook",               location: "Level 2",       map: { floor: "2", store: "Book Nook" } },
+      { id: 7,  name: "💄 Glow Beauty",             location: "Level 3",       map: { floor: "3", store: "Glow Beauty" } },
+      { id: 8,  name: "⌚ Time & Shine",            location: "Level 3",       map: { floor: "3", store: "Time & Shine" } },
+      { id: 9,  name: "🍛 South Indian Food Court", location: "Level 4",       map: { floor: "4", experience: "food" } },
+      { id: 10, name: "🎬 Multiplex Cinema",        location: "Level 5",       map: { floor: "5", experience: "cinema" } },
+      { id: 11, name: "🎳 Bowling & Gaming Arcade", location: "Level 5",       map: { floor: "5", experience: "gaming" } },
+      { id: 12, name: "🧸 Kids Play Zone",          location: "Level 5",       map: { floor: "5", experience: "kids" } },
+      { id: 13, name: "🏧 ATM / Info Desk",         location: "Ground Floor",  map: { floor: "G" } },
+      { id: 14, name: "🅿️ Parking & Valet",         location: "Parking Level", map: { floor: "P" } },
     ],
   },
   company: {
@@ -802,6 +798,12 @@ app.get("/", (req, res) => {
         </div>
 
         <!-- SMART WAYFINDING -->
+                <!-- MALL 3D MAP -->
+        <div class="card" id="mallMapCard" style="display:none;">
+            <div class="title">🗺️ Mall 3D Map</div>
+            <iframe id="mallFrame" src="" allow="fullscreen"
+                    style="width:100%;height:640px;border:0;border-radius:12px;background:#0b111b;"></iframe>
+        </div>
         <div class="card" id="navigationCard" style="display:none;">
             <div class="title">🧭 Smart Wayfinding</div>
             <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Describe one or more things you want to find. The AI can build a multi-stop visit plan.</p>
@@ -835,6 +837,39 @@ app.get("/", (req, res) => {
         let mediaStream = null;
         let lastTriageItemId = null;
         let lastNavigation = null;
+                let mallFrameReady = false;
+        let pendingMallFocus = null;
+
+        function ensureMallFrame() {
+            const f = document.getElementById('mallFrame');
+            if (f && !f.getAttribute('src')) f.src = '/mall/index.html?kiosk=1';
+        }
+
+        function postToMall(msg) {
+            const f = document.getElementById('mallFrame');
+            if (f && f.contentWindow) {
+                f.contentWindow.postMessage(Object.assign({ type: 'kiosk:focus' }, msg), '*');
+            }
+        }
+
+        window.addEventListener('message', function (ev) {
+            const f = document.getElementById('mallFrame');
+            if (!f || ev.source !== f.contentWindow) return;
+            if (ev.data && ev.data.type === 'kiosk:ready') {
+                mallFrameReady = true;
+                if (pendingMallFocus) { postToMall(pendingMallFocus); pendingMallFocus = null; }
+            }
+        });
+
+        function focusMallItem(item, openStore) {
+            if (currentCategory !== 'mall' || !item || !item.map) return;
+            ensureMallFrame();
+            const msg = { floor: item.map.floor };
+            if (openStore && item.map.store) msg.store = item.map.store;
+            if (openStore && item.map.experience) msg.experience = item.map.experience;
+            if (mallFrameReady) postToMall(msg); else pendingMallFocus = msg;
+            document.getElementById('mallMapCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
 
         function updateStatus(txt) {
             document.getElementById('statusBox').innerText = txt;
@@ -907,6 +942,9 @@ app.get("/", (req, res) => {
                 const data = await r.json();
                 if (!r.ok || data.error) throw new Error(data.error || 'Navigation failed');
                 lastNavigation = data;
+                                if (data.stops && data.stops[0]) {
+                    focusMallItem(currentItems().find(function (i) { return i.id === data.stops[0].itemId; }), false);
+                }
                 const box = document.getElementById('navResult');
                 box.innerHTML = '<div style="font-weight:800;margin-bottom:8px;">' + (data.title || 'Your route') + '</div>' +
                     data.stops.map((s, i) => '<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);"><b>' + (i + 1) + '. ' + s.itemName + '</b><br><small>' + s.location + '</small><br><span style="font-size:12px;">' + (s.reason || '') + '</span></div>').join('');
@@ -981,7 +1019,8 @@ app.get("/", (req, res) => {
             document.getElementById('manualCard').style.display = bookingOn ? 'block' : 'none';
             document.getElementById('dashboardCard').style.display = bookingOn ? 'block' : 'none';
             document.getElementById('navigationCard').style.display = (key === 'mall' || key === 'company') ? 'block' : 'none';
-
+            document.getElementById('mallMapCard').style.display = key === 'mall' ? 'block' : 'none';
+            if (key === 'mall') ensureMallFrame();
             if (bookingOn) {
                 document.getElementById('manualCardTitle').innerText = cat.icon + ' Self-Booking / Manual Input';
                 document.getElementById('bookBtn').innerText = cat.bookButtonLabel || 'Book';
@@ -1098,7 +1137,7 @@ app.get("/", (req, res) => {
                 }
 
                 lastTriageItemId = data.recommendedItemId;
-
+                focusMallItem(currentItems().find(function (i) { return i.id === data.recommendedItemId; }), false);
                 document.getElementById('triageDocName').innerText = data.itemName;
                 document.getElementById('triageDocLocation').innerText = data.location;
                 document.getElementById('triageReasoning').innerText = data.reasoning;
