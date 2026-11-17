@@ -95,7 +95,9 @@ async function generateGeminiContent({ contents, config, operation = "AI request
         const response = await ai.models.generateContent({
           model,
           contents,
-          config,
+          config: model.startsWith("gemini-3.8")
+            ? { ...config, thinkingConfig: { thinkingLevel: "low" } }
+            : config,
         });
 
         console.log(`[GEMINI] ${operation} | success | model=${model}`);
